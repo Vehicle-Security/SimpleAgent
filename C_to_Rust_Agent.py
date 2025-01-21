@@ -92,7 +92,7 @@ class OllamaModel:
             return response
         
 
-model = "llama3.1"
+
 system_prompt = """
 You are an agent that specialized in converting C code to rust code.
 Given a user query,
@@ -110,7 +110,7 @@ You will generate the following JSON response:
 
 
 
-def generate_rust_file(file_path):
+def generate_rust_file(file_path, model):
     prompt = "请把以下代码转化为rust语言\n"
     with open(file_path, "r") as file:
         prompt += file.read()
@@ -126,4 +126,4 @@ def generate_rust_file(file_path):
         with open("rust_code.rs", "w") as file:
             file.write(generated_text) 
 
-generate_rust_file("c_code.cpp")
+generate_rust_file("c_code.cpp", model = "llama3.1")
