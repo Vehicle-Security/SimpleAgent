@@ -28,3 +28,10 @@ agent能执行简单任务，任务会出错，需要多轮次交互，例如：
 - 本地 Ollama
 - python3.9
 - python requests库、json库
+
+### Ollama使用
+安装：  
+`curl -fsSL https://ollama.com/install.sh | sh`
+
+安装模型：  
+ollama pull llama3.2
