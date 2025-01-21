@@ -19,3 +19,12 @@ agent能执行简单任务，任务会出错，需要多轮次交互，例如：
 实现多个agent交互，例如：  
 - agent-1：负责修改代码错误  
 - agent-2：负责调用gcc编译  
+
+---
+
+## Requirements
+
+
+- 本地 Ollama
+- python3.9
+- python requests库、json库
