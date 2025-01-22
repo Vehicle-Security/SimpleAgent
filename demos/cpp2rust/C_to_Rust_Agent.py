@@ -51,7 +51,7 @@ class OllamaModel:
         prompt (str): The user query to generate a response for.
 
         Returns:
-        dict: The response from the model as a dictionary.
+        dict: The response from the model.
         """
         payload = {
             "model": self.model,
@@ -81,15 +81,29 @@ class OllamaModel:
                     except json.JSONDecodeError:
                         continue
                 # print(generated_text)
-                # return generated_text
                 generated_json_dict = json.loads(generated_text)
-                return self.extract_rust_code(generated_json_dict)
+                # print(type(generated_json_dict))
+                return generated_json_dict
             else:
                 print(f"请求失败，状态码: {response.status_code}")
             return None            
         except requests.RequestException as e:
             response = {"error": f"Error in invoking model! {str(e)}"}
             return response
+        
+    def generate_rust_code(self, prompt):
+        """
+        Generates a response from the Ollama model based on the provided prompt.
+
+        Parameters:
+        prompt (str): The user query to generate a response for.
+
+        Returns:
+        str: The response code from the model.
+        """
+        generated_json_dict = self.generate_text(prompt)
+        generate_rust_code = self.extract_rust_code(generated_json_dict)
+        return generate_rust_code
         
 
 
