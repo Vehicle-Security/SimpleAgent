@@ -176,13 +176,20 @@ class RustCodeModifier:
             - result_message (str): Compilation/runtime output or error message
             - modified_code (str): Modified code if changes were made, None otherwise
         """
+        # Read the original code
+        with open(file_path, 'r') as file:
+            original_code = file.read()
+
         # First try to compile the code
         compile_flag, compile_result = self.rust_compiler(file_path=file_path)
         
         if compile_flag == 0:  # Compilation failed
             # Generate prompt for the LLM to fix compilation errors
             prompt = f"""
-            The following Rust code failed to compile with this error:
+            Here is the original Rust code:
+            {original_code}
+
+            The code failed to compile with this error:
             {compile_result}
             Please fix the code and explain the changes.
             """
@@ -197,7 +204,10 @@ class RustCodeModifier:
             if run_flag == 0:  # Runtime error
                 # Generate prompt for the LLM to fix runtime errors
                 prompt = f"""
-                The Rust code compiled successfully but failed during execution with this error:
+                Here is the original Rust code:
+                {original_code}
+
+                The code compiled successfully but failed during execution with this error:
                 {run_result}
                 Please fix the code and explain the changes.
                 """
