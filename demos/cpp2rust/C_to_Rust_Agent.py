@@ -1,12 +1,5 @@
-from termcolor import colored
-import os
-from dotenv import load_dotenv
-load_dotenv()
-### Models
-import requests
 import json
-import operator
-
+import requests
 
 class OllamaModel:
     def __init__(self, model, system_prompt, temperature = 0, stop = None):
@@ -27,6 +20,8 @@ class OllamaModel:
         self.stop = stop
 
     def extract_rust_code(self, code_dict):
+        if code_dict is None:
+            return "请求失败，未获取到有效数据"
         try:
             # 将Python字典转换为JSON字符串
             json_str = json.dumps(code_dict, ensure_ascii=False)
@@ -104,8 +99,6 @@ class OllamaModel:
         generated_json_dict = self.generate_text(prompt)
         generate_rust_code = self.extract_rust_code(generated_json_dict)
         return generate_rust_code
-        
-
 
 class C2RustConverter:
     def __init__(self, model="llama3.1"):
@@ -125,7 +118,7 @@ class C2RustConverter:
 
         "code" : {
             "type" : "Rust",
-            "content" " [
+            "content" : [
                 "code_content"
             ]
         }
@@ -153,13 +146,13 @@ class C2RustConverter:
                 print("prompt:")
                 print(prompt, "\n\n")
 
-            generated_text = self.ollama_model.generate_text(prompt)
+            generated_code = self.ollama_model.generate_rust_code(prompt)
             
-            if generated_text:
+            if generated_code:
                 print("generated rust code:")
-                print(generated_text)
+                print(generated_code)
                 with open(output_file_path, "w") as file:
-                    file.write(generated_text)
+                    file.write(generated_code)
                 return True
             return False
             
@@ -179,15 +172,15 @@ class C2RustConverter:
         str: 生成的Rust代码
         """
         prompt = "请把以下代码转化为rust语言\n" + code_string
-        generated_text = self.ollama_model.generate_text(prompt)
+        generated_code = self.ollama_model.generate_rust_code(prompt)
         
-        if generated_text and output_file_path:
+        if generated_code and output_file_path:
             with open(output_file_path, "w") as file:
-                file.write(generated_text)
+                file.write(generated_code)
                 
-        return generated_text
+        return generated_code
 
 # 使用示例
 if __name__ == "__main__":
     converter = C2RustConverter(model="llama3.1")
-    converter.convert_file("c_code.cpp")
+    converter.convert_file("./c_code.cpp")
