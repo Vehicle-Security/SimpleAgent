@@ -21,6 +21,8 @@ class OllamaModel:
         self.stop = stop
 
     def extract_rust_code(self, code_dict):
+        if code_dict is None:
+            return "请求失败，未获取到有效数据"
         try:
             # 将Python字典转换为JSON字符串
             json_str = json.dumps(code_dict, ensure_ascii=False)
@@ -76,7 +78,7 @@ class OllamaModel:
                         continue
                 # print(generated_text)
                 generated_json_dict = json.loads(generated_text)
-                print("SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", type(generated_json_dict))
+                # print(type(generated_json_dict))
                 return generated_json_dict
             else:
                 print(f"请求失败，状态码: {response.status_code}")
@@ -96,7 +98,6 @@ class OllamaModel:
         str: The response code from the model.
         """
         generated_json_dict = self.generate_text(prompt)
-        print("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", type(generated_json_dict))
         generate_rust_code = self.extract_rust_code(generated_json_dict)
         return generate_rust_code
 
@@ -105,7 +106,7 @@ class RustCodeModifier:
         self.model = model
         self.system_prompt = """
         You are an agent that specialized in fixing error rust code.
-        Given a user query that contains error message,
+        Given a user query that contains oridinal rust code and error message,
         you will try to fix the given rust code according to the error message.
         You will generate the following JSON response:
 
@@ -114,7 +115,8 @@ class RustCodeModifier:
                     "content" : [
                         "code_content"
                     ]
-                }
+                },
+        "explanation" : "explanation"
         """
         self.ollama_model = OllamaModel(
             model = self.model,
@@ -163,7 +165,7 @@ class RustCodeModifier:
             # print("运行失败：", e.stderr.decode())
             return 0, e.stderr.decode()
 
-    def modifier(self, file_path):
+    def modify(self, file_path):
         """
         Modifies Rust code based on compilation and runtime errors.
         
@@ -186,15 +188,24 @@ class RustCodeModifier:
         if compile_flag == 0:  # Compilation failed
             # Generate prompt for the LLM to fix compilation errors
             prompt = f"""
-            Here is the original Rust code:
-            {original_code}
+Here is the original Rust code:
+{original_code}
 
-            The code failed to compile with this error:
-            {compile_result}
-            Please fix the code and explain the changes.
+The code failed to compile with this error:
+{compile_result}
+Please fix the code and explain the changes.
             """
+            print("prompt : ", prompt)
             # Get fixed code from LLM
+            # print(f"model = self.ollama_model {self.ollama_model}")
+            # prompt = "hi" 
+            # print(f"model={self.model}")
+            # ollama_model_modify = OllamaModel(model="llama3.1", system_prompt="")
+            # generated_code = ollama_model_modify.generate_rust_code(prompt=prompt)
             fixed_code = self.ollama_model.generate_rust_code(prompt)
+            print("fixed_code : ", fixed_code)
+            with open("rust_code.rs", "w") as file:
+                file.write(fixed_code)
             return 0, compile_result, fixed_code
             
         else:  # Compilation succeeded
@@ -211,11 +222,16 @@ class RustCodeModifier:
                 {run_result}
                 Please fix the code and explain the changes.
                 """
+                print("prompt : ", prompt)
                 # Get fixed code from LLM
                 fixed_code = self.ollama_model.generate_rust_code(prompt)
+                print("fixed_code : ", fixed_code)
+                with open("rust_code.rs", "w") as file:
+                    file.write(fixed_code)
                 return 0, run_result, fixed_code
                 
             else:  # Everything succeeded
+                print("run_result : ", run_result)
                 return 1, run_result, None
 
 
@@ -225,6 +241,11 @@ Chat with me
 You will generate the following JSON response:
 "response" : "your response to the given request"
 """
+
+# 使用示例
+if __name__ == "__main__":
+    modifier = RustCodeModifier(model="llama3.1")
+    modifier.modify("./rust_code.rs")
 
 """test Ollama Model"""
 # ollama_model_chat = OllamaModel(model=model, system_prompt=system_prompt_chat)
@@ -238,7 +259,7 @@ You will generate the following JSON response:
 #             print(generated_text)
 
 """test modifier.rust_compiler"""
-# modifier = RustCodeModifier(model="lamma3.1")
+# modifier = RustCodeModifier(model="llama3.1")
 # f, res = modifier.rust_compiler("./rust_code.rs")
 # if f == 0:
 #     print("编译失败：")
@@ -248,7 +269,7 @@ You will generate the following JSON response:
 # print(res)
 
 """test modifier.rust_runner"""
-# modifier = RustCodeModifier(model="lamma3.1")
+# modifier = RustCodeModifier(model="llama3.1")
 # f, res = modifier.rust_runner("./rust_code")
 # if f == 0:
 #     print("运行失败：")
@@ -258,12 +279,52 @@ You will generate the following JSON response:
 # print(res)
 
 """test modifier.modifier"""
-modifier = RustCodeModifier(model="lamma3.1")
-f, res, code = modifier.modifier("./rust_code.rs")
-if(f == 1):
-    print("编译成功")
-else:
-    print("编译失败")
-    print(res)
-    print("修改后代码：")
-    print(code)
+# modifier = RustCodeModifier(model="llama3.1")
+# f, res, code = modifier.modifier("./rust_code.rs")
+# if(f == 1):
+#     print("编译成功")
+# else:
+#     print("编译失败")
+#     print(res)
+#     print("修改后代码：")
+#     print(code)
+
+"""test"""
+# system_prompt_modify = """
+# You are an agent that specialized in fixing error rust code.
+#     Given a user query that contains error message,
+#     you will try to fix the given rust code according to the error message.
+#     You will generate the following JSON response:
+
+#     "code" : {
+#                 "type" : "Rust",
+#                 "content" : [
+#                     "code_content"
+#                 ]
+#             },
+#     "explanation" : "explanation"
+# """
+# prompt = """
+# Here is the original Rust code:
+# fn main() {
+#     let mut n: i32 = 114515;
+#     println!("{}", n - 1);
+
+
+# The code failed to compile with this error:
+# error: this file contains an unclosed delimiter
+#  --> ./rust_code.rs:3:28
+#   |
+# 1 | fn main() {
+#   |           - unclosed delimiter
+# 2 |     let mut n: i32 = 114515;
+# 3 |     println!("{}", n - 1);
+#   |                            ^
+
+# error: aborting due to previous error
+
+
+# Please fix the code and explain the changes."""
+# ollama_model_modify = OllamaModel(model=model, system_prompt=system_prompt_modify)
+# generated_code = ollama_model_modify.generate_rust_code(prompt=prompt)
+# print(generated_code)
