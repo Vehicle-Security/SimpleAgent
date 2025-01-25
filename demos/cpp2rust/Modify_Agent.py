@@ -1,8 +1,11 @@
-import subprocess
+import sys
+sys.path.append("../rust-compile-run")
+from Rust import Rust
 from OllamModel import OllamaModel
 
 class RustCodeModifier:
-    def __init__(self, model="llama3.1"):
+    def __init__(self, model="llama3.1", file_path=""):
+        self.file_path = file_path
         self.model = model
         self.system_prompt = """
         You are an agent that specialized in fixing error rust code.
@@ -22,48 +25,7 @@ class RustCodeModifier:
             model = self.model,
             system_prompt = self.system_prompt
         )
-    
-    def rust_compiler(self, file_path):
-        """
-        Compile rust code
-
-        Parameters:
-        file_path(str)：需要编译的rust代码的path
-
-        Rerturns:
-        pair：
-            success_flag(int)： 0 for success, 1 for failure
-            result_message(str)：Compilation output or error message
-        """
-        try:
-            # 使用 subprocess 模块的 run 方法调用 bash 命令
-            result = subprocess.run(['rustc', file_path], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            # print("编译成功：", result.stdout.decode())
-            return 0, result.stdout.decode()
-        except subprocess.CalledProcessError as e:
-            # print("编译失败：", e.stderr.decode())
-            return 1, e.stderr.decode()
-        
-    def rust_runner(self, executable_path):
-        """
-        Run executable file
-
-        Parameters:
-        file_path(str)：需要运行的rust代码的path
-
-        Rerturns:
-        pair：
-            success_flag(int)： 0 for success, 1 for failure
-            result_message(str)：Runtime output or error message
-        """
-        try:
-            # 使用 subprocess 模块的 run 方法调用 bash 命令
-            result = subprocess.run([executable_path], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            # print("运行成功：", result.stdout.decode())
-            return 0, result.stdout.decode()
-        except subprocess.CalledProcessError as e:
-            # print("运行失败：", e.stderr.decode())
-            return 1, e.stderr.decode()
+        self.rust = Rust(file_path=self.file_path)
 
     def modify(self, file_path):
         """
@@ -83,7 +45,7 @@ class RustCodeModifier:
             original_code = file.read()
 
         # First try to compile the code
-        compile_flag, compile_result = self.rust_compiler(file_path=file_path)
+        compile_flag, compile_result = self.rust.rust_compile()
         
         if compile_flag == 1:  # Compilation failed
             # Generate prompt for the LLM to fix compilation errors
@@ -104,13 +66,13 @@ Please fix the code and explain the changes.
             # generated_code = ollama_model_modify.generate_rust_code(prompt=prompt)
             fixed_code = self.ollama_model.generate_rust_code(prompt)
             print("fixed_code : ", fixed_code)
-            with open("rust_code.rs", "w") as file:
+            with open(self.file_path, "w") as file:
                 file.write(fixed_code)
             return 0, compile_result, fixed_code
             
         else:  # Compilation succeeded
             executable_path = file_path.rsplit('.', 1)[0]  # Remove .rs extension
-            run_flag, run_result = self.rust_runner(executable_path)
+            run_flag, run_result = self.rust.rust_run()
             
             if run_flag == 1:  # Runtime error
                 # Generate prompt for the LLM to fix runtime errors
@@ -126,7 +88,7 @@ Please fix the code and explain the changes.
                 # Get fixed code from LLM
                 fixed_code = self.ollama_model.generate_rust_code(prompt)
                 print("fixed_code : ", fixed_code)
-                with open("rust_code.rs", "w") as file:
+                with open(self.file_path, "w") as file:
                     file.write(fixed_code)
                 return 1, run_result, fixed_code
                 
@@ -136,7 +98,7 @@ Please fix the code and explain the changes.
 
 # 使用示例
 if __name__ == "__main__":
-    modifier = RustCodeModifier(model="llama3.1")
+    modifier = RustCodeModifier(model="llama3.1", file_path="./rust_code.rs")
     modifier.modify("./rust_code.rs")
 
 """test Ollama Model"""
