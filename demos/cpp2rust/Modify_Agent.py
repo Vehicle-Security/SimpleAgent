@@ -1,105 +1,5 @@
 import subprocess
-import requests
-import json
-
-class OllamaModel:
-    def __init__(self, model, system_prompt, temperature = 0, stop = None):
-        """
-        Initializes the OllamaModel with the given parameters.
-
-        Parameters:
-        model (str): The name of the model to use.
-        system_prompt (str): The system prompt to use.
-        temperature (float): The temperature setting for the model.
-        stop (str): The stop token for the model.
-        """
-        self.model_url = "http://localhost:11434/api/generate"
-        self.temperature = temperature
-        self.model = model
-        self.system_prompt = system_prompt
-        self.headers = {"Content-Type": "application/json"}
-        self.stop = stop
-
-    def extract_rust_code(self, code_dict):
-        if code_dict is None:
-            return "请求失败，未获取到有效数据"
-        try:
-            # 将Python字典转换为JSON字符串
-            json_str = json.dumps(code_dict, ensure_ascii=False)
-            # 解析JSON字符串为Python字典
-            data = json.loads(json_str)
-            # 提取出Rust代码内容
-            rust_code_lines = data.get('code', {}).get('content', [])
-            # 将Rust代码行合并成一个字符串
-            rust_code = '\n'.join(rust_code_lines)
-            # 输出Rust代码
-            # print(rust_code)
-            return rust_code
-        except json.JSONDecodeError as e:
-            # print(f"JSON解析失败: {e}")
-            return f"JSON解析失败：{e}"
-
-    def generate_text(self, prompt):
-        """
-        Generates a response from the Ollama model based on the provided prompt.
-
-        Parameters:
-        prompt (str): The user query to generate a response for.
-
-        Returns:
-        dict: The response from the model.
-        """
-        payload = {
-            "model": self.model,
-            "format": "json",
-            "prompt": prompt,
-            "system": self.system_prompt,
-            "stream": False,
-            "temperature": self.temperature,
-            "stop": self.stop
-        }
-        try:
-            response = requests.post(
-                self.model_url,
-                headers = self.headers,
-                data = json.dumps(payload)
-            )
-            if response.status_code == 200:
-                # 按行分割响应内容
-                response_lines = response.text.splitlines()
-                generated_text = ""
-                for line in response_lines:
-                    try:
-                        result = json.loads(line)
-                        # print(result)
-                        # 假设 Ollama 的响应包含生成的文本在 'response' 字段中
-                        generated_text += result.get('response', "")
-                    except json.JSONDecodeError:
-                        continue
-                # print(generated_text)
-                generated_json_dict = json.loads(generated_text)
-                # print(type(generated_json_dict))
-                return generated_json_dict
-            else:
-                print(f"请求失败，状态码: {response.status_code}")
-            return None            
-        except requests.RequestException as e:
-            response = {"error": f"Error in invoking model! {str(e)}"}
-            return response
-        
-    def generate_rust_code(self, prompt):
-        """
-        Generates a response from the Ollama model based on the provided prompt.
-
-        Parameters:
-        prompt (str): The user query to generate a response for.
-
-        Returns:
-        str: The response code from the model.
-        """
-        generated_json_dict = self.generate_text(prompt)
-        generate_rust_code = self.extract_rust_code(generated_json_dict)
-        return generate_rust_code
+from OllamModel import OllamaModel
 
 class RustCodeModifier:
     def __init__(self, model="llama3.1"):
@@ -132,17 +32,17 @@ class RustCodeModifier:
 
         Rerturns:
         pair：
-            success_flag(int)： 1 for success, 0 for failure
+            success_flag(int)： 0 for success, 1 for failure
             result_message(str)：Compilation output or error message
         """
         try:
             # 使用 subprocess 模块的 run 方法调用 bash 命令
             result = subprocess.run(['rustc', file_path], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             # print("编译成功：", result.stdout.decode())
-            return 1, result.stdout.decode()
+            return 0, result.stdout.decode()
         except subprocess.CalledProcessError as e:
             # print("编译失败：", e.stderr.decode())
-            return 0, e.stderr.decode()
+            return 1, e.stderr.decode()
         
     def rust_runner(self, executable_path):
         """
@@ -153,17 +53,17 @@ class RustCodeModifier:
 
         Rerturns:
         pair：
-            success_flag(int)： 1 for success, 0 for failure
+            success_flag(int)： 0 for success, 1 for failure
             result_message(str)：Runtime output or error message
         """
         try:
             # 使用 subprocess 模块的 run 方法调用 bash 命令
             result = subprocess.run([executable_path], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             # print("运行成功：", result.stdout.decode())
-            return 1, result.stdout.decode()
+            return 0, result.stdout.decode()
         except subprocess.CalledProcessError as e:
             # print("运行失败：", e.stderr.decode())
-            return 0, e.stderr.decode()
+            return 1, e.stderr.decode()
 
     def modify(self, file_path):
         """
@@ -174,7 +74,7 @@ class RustCodeModifier:
         
         Returns:
         tuple: (success_flag, result_message, modified_code)
-            - success_flag (int): 1 for success, 0 for failure
+            - success_flag (int): 0 for success, 1 for failure
             - result_message (str): Compilation/runtime output or error message
             - modified_code (str): Modified code if changes were made, None otherwise
         """
@@ -185,7 +85,7 @@ class RustCodeModifier:
         # First try to compile the code
         compile_flag, compile_result = self.rust_compiler(file_path=file_path)
         
-        if compile_flag == 0:  # Compilation failed
+        if compile_flag == 1:  # Compilation failed
             # Generate prompt for the LLM to fix compilation errors
             prompt = f"""
 Here is the original Rust code:
@@ -212,7 +112,7 @@ Please fix the code and explain the changes.
             executable_path = file_path.rsplit('.', 1)[0]  # Remove .rs extension
             run_flag, run_result = self.rust_runner(executable_path)
             
-            if run_flag == 0:  # Runtime error
+            if run_flag == 1:  # Runtime error
                 # Generate prompt for the LLM to fix runtime errors
                 prompt = f"""
                 Here is the original Rust code:
@@ -228,19 +128,11 @@ Please fix the code and explain the changes.
                 print("fixed_code : ", fixed_code)
                 with open("rust_code.rs", "w") as file:
                     file.write(fixed_code)
-                return 0, run_result, fixed_code
+                return 1, run_result, fixed_code
                 
             else:  # Everything succeeded
                 print("run_result : ", run_result)
-                return 1, run_result, None
-
-
-model = "llama3.1"
-system_prompt_chat = """
-Chat with me
-You will generate the following JSON response:
-"response" : "your response to the given request"
-"""
+                return 0, run_result, None
 
 # 使用示例
 if __name__ == "__main__":
@@ -248,6 +140,12 @@ if __name__ == "__main__":
     modifier.modify("./rust_code.rs")
 
 """test Ollama Model"""
+# model = "llama3.1"
+# system_prompt_chat = """
+# Chat with me
+# You will generate the following JSON response:
+# "response" : "your response to the given request"
+# """
 # ollama_model_chat = OllamaModel(model=model, system_prompt=system_prompt_chat)
 # if __name__ == "__main__":
 #     while True:
@@ -261,7 +159,7 @@ if __name__ == "__main__":
 """test modifier.rust_compiler"""
 # modifier = RustCodeModifier(model="llama3.1")
 # f, res = modifier.rust_compiler("./rust_code.rs")
-# if f == 0:
+# if f == 1:
 #     print("编译失败：")
 # else:
 #     print("编译成功：")
@@ -271,7 +169,7 @@ if __name__ == "__main__":
 """test modifier.rust_runner"""
 # modifier = RustCodeModifier(model="llama3.1")
 # f, res = modifier.rust_runner("./rust_code")
-# if f == 0:
+# if f == 1:
 #     print("运行失败：")
 # else:
 #     print("运行成功：")
@@ -281,7 +179,7 @@ if __name__ == "__main__":
 """test modifier.modifier"""
 # modifier = RustCodeModifier(model="llama3.1")
 # f, res, code = modifier.modifier("./rust_code.rs")
-# if(f == 1):
+# if(f == 0):
 #     print("编译成功")
 # else:
 #     print("编译失败")
