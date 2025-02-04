@@ -17,13 +17,13 @@ class Cpp:
             result_message(str): 编译输出或错误信息
         """
         file_path = self.file_path
+        executable_path = file_path[:-4]  # 去掉 .cpp 后缀，得到可执行文件的路径
         try:
             # 使用 subprocess 模块的 run 方法调用 g++ 编译命令
-            result = subprocess.run(['g++', file_path, '-o', file_path[:-4]], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            # print("编译成功：", result.stdout.decode())
+            result = subprocess.run(['g++', file_path, '-o', executable_path], 
+                                 check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             return 0, result.stdout.decode()
         except subprocess.CalledProcessError as e:
-            # print("编译失败：", e.stderr.decode())
             return 1, e.stderr.decode()
 
     def cpp_run(self):
