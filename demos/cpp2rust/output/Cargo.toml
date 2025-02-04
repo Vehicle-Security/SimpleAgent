@@ -1,7 +1,2 @@
-[package]
-name = "example"
-version = "0.1.0"
-edition = "2021"
-
 [dependencies]
-std = { version = "0.3", optional = true }
+std = "0.3.18"

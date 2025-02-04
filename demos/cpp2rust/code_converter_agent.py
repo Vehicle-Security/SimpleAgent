@@ -1,3 +1,5 @@
+import sys
+sys.path.append("../../agent")
 from unified_llm_client import UnifiedLLMClient
 from ai_agent import AIAgent
 import os
