@@ -1,0 +1,7 @@
+[package]
+name = "code_example"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+std = { version = "0", features = ["cargo-extended"] }
