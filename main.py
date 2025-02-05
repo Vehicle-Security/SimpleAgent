@@ -19,15 +19,15 @@ if __name__ == "__main__":
     converter = CodeConverterAgent(
         client=llm_client,
         model_name="ollama-llama3",
-        input_path="./example.cpp",
-        output_dir="./output",
+        input_path="./test_code/example.cpp",
+        output_dir="./test_code/output",
     )
 
     modifier = CodeModifierAgent(
         client=llm_client,
         model_name="ollama-llama3",
-        rust_path="./output/example.rs",
-        cpp_path="./example.cpp"
+        rust_path="./test_code/output/example.rs",
+        cpp_path="./test_code/example.cpp"
     )
 
     converter.convert()
