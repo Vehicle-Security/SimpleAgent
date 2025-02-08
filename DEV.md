@@ -7,6 +7,16 @@
 - 基本agent封装，能执行命令  
 - 能多个agent之间按照指定pipeline调用  
 
+#### 开发步骤拆解  
+> 交替实现Demo和优化LLM框架  
+
+1. 简单LLM调用实现：gcc编译C, C到rust转写
+  
+2. 简单LLM框架封装，v0.1
+   
+3. 基于LLM框架，实现复杂Agent：Leetcode Agent
+
+4. 优化LLM框架
 
 #### 当前代码改进  
 1. demos里面每个demo加简单的文档，写设计目标、实现思路、使用方法  
