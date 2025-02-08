@@ -15,17 +15,37 @@ if __name__ == "__main__":
         config=llm_client.configs["ollama"],
         model="llama3.1"
     )
+    llm_client.add_model(
+        model_name="deepseek-pro",
+        config=llm_client.configs["deepseek"],
+        api_key="sk-32351aabaf6547d290368eb33e45bd9f",
+        model="deepseek-chat"
+    )
+
+    # converter = CodeConverterAgent(
+    #     client=llm_client,
+    #     model_name="ollama-llama3",
+    #     input_path="./test_code/example.cpp",
+    #     output_dir="./test_code/output",
+    # )
+
+    # modifier = CodeModifierAgent(
+    #     client=llm_client,
+    #     model_name="ollama-llama3",
+    #     rust_path="./test_code/output/example.rs",
+    #     cpp_path="./test_code/example.cpp"
+    # )
 
     converter = CodeConverterAgent(
         client=llm_client,
-        model_name="ollama-llama3",
+        model_name="deepseek-pro",
         input_path="./test_code/example.cpp",
         output_dir="./test_code/output",
     )
 
     modifier = CodeModifierAgent(
         client=llm_client,
-        model_name="ollama-llama3",
+        model_name="deepseek-pro",
         rust_path="./test_code/output/example.rs",
         cpp_path="./test_code/example.cpp"
     )

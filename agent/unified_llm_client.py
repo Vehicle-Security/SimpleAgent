@@ -1,4 +1,5 @@
 import requests
+import json
 from typing import Dict, Optional, List
 
 class UnifiedLLMClient:
@@ -11,9 +12,9 @@ class UnifiedLLMClient:
                     "Authorization": "Bearer {api_key}",
                     "Content-Type": "application/json"
                 },
-                "endpoint": "/completions",
-                "prompt_field": "prompt",
-                "response_field": "choices[0].text"
+                "endpoint": "/chat/completions",
+                "prompt_field": "messages",
+                "response_field": "choices[0].message.content"
             },
             "openai": {
                 "base_url": "https://api.openai.com/v1",
@@ -98,6 +99,12 @@ class UnifiedLLMClient:
             **kwargs
         }
 
+        # 在发送请求前添加调试信息
+        print("\n=== 调试信息 ===")
+        print("模型配置:", config)
+        print("请求端点:", endpoint)
+        print("请求头:", config["headers"])
+        print("请求数据:", json.dumps(data, indent=2, ensure_ascii=False))
         # 发送请求
         try:
             response = requests.post(

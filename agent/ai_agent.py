@@ -29,12 +29,17 @@ class AIAgent:
         """将系统提示添加到消息历史中（根据模型类型调整格式）"""
         # 根据模型类型决定如何包装系统提示
         model_type = self.client.active_models[self.model_name]["config"].get("type", "general")
-        
-        if model_type == "openai":
+        model_config = self.client.active_models[self.model_name]["config"]
+        if model_config.get("prompt_field") == "messages":
+            self.message_history.append({
+                "role": "system", 
+                "content": self.system_prompt
+            })
+        elif model_type == "openai":
             # OpenAI 风格的 system 角色
             self.message_history.append({
-                "role": "system",
-                "content": self.system_prompt
+                "role": "user",
+                "content": f"System Prompt: {self.system_prompt}"
             })
         else:
             # 通用方式：将系统提示作为第一条用户消息
