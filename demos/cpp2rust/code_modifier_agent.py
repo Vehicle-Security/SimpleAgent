@@ -33,7 +33,7 @@ class CodeModifierAgent(AIAgent):
             "1. 根据编译/运行时错误分析问题\n"
             "2. 保持与原始C++代码的逻辑一致性\n"
             "3. 使用Rust的安全最佳实践\n"
-            "4. 响应格式：\n"
+            "4. 响应格式(特别注意，必须严格遵循响应格式进行输出，[ANALYSIS]和[MODIFIED_CODE]部分不能进行包括翻译在内的任何改动)：\n"
             "   [ANALYSIS]\n"
             "   问题分析...\n"
             "   [MODIFIED_CODE]\n"
@@ -147,6 +147,7 @@ class CodeModifierAgent(AIAgent):
             # 调用LLM获取修正方案
             try:
                 response = self.chat(prompt, max_tokens=2000, temperature=0.3)
+                print("response:\n", response)
                 new_code = self._parse_response(response)
                 self._update_rust_code(new_code)
                 
