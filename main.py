@@ -3,9 +3,9 @@ sys.path.append("./agent")
 sys.path.append("./demos/cpp2rust")
 sys.path.append("./demos/cpp-compile-run")
 sys.path.append("./demos/rust-compile-run")
+sys.path.append("./demos/code-explainer")
+from code_explainer_agent import CodeExplainerAgent
 from unified_llm_client import UnifiedLLMClient
-# from code_converter_agent import CodeConverterAgent
-# from code_modifier_agent import CodeModifierAgent
 from agent import CodeToolboxAgent
 
 

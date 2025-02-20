@@ -3,10 +3,12 @@ sys.path.append("./agent")
 sys.path.append("./demos/cpp2rust")
 sys.path.append("./demos/cpp-compile-run")
 sys.path.append("./demos/rust-compile-run")
+sys.path.append("./demos/code-explainer")
 from unified_llm_client import UnifiedLLMClient
 from ai_agent import AIAgent
 from code_converter_agent import CodeConverterAgent
 from code_modifier_agent import CodeModifierAgent
+from code_explainer_agent import CodeExplainerAgent
 from typing import Optional, Dict, Any
 import os
 
@@ -31,9 +33,10 @@ class CodeToolboxAgent(AIAgent):
             "你是一个智能代码助手，负责理解用户需求并选择合适的工具。可用的工具有：\n"
             "1. 代码转换器(converter): 将C++代码转换为Rust代码\n"
             "2. 代码修正器(modifier): 诊断和修复Rust代码问题\n"
+            "3. 代码解释器(explainer): 解释Rust代码相关问题\n"
             "请根据用户输入判断应该使用哪个工具，并按以下格式响应：\n"
             "[TOOL_CHOICE]\n"
-            "工具名称: converter或modifier\n"
+            "工具名称: converter、modifier或explainer\n"
             "原因: 选择该工具的理由\n"
             "[ACTION]\n"
             "建议的具体操作"
@@ -74,6 +77,11 @@ class CodeToolboxAgent(AIAgent):
                 model_name=model_name,
                 rust_path=self.rust_path,
                 cpp_path=self.cpp_path
+            ),
+            "explainer": CodeExplainerAgent(
+                client=client,
+                model_name=model_name,
+                rust_path=self.rust_path
             )
         }
     
@@ -88,7 +96,7 @@ class CodeToolboxAgent(AIAgent):
             raise ValueError("无效的响应格式")
             
         tool_section = tool_match.group(1)
-        tool_name = re.search(r'工具名称:\s*(converter|modifier)', tool_section)
+        tool_name = re.search(r'工具名称:\s*(converter|modifier|explainer)', tool_section)
         
         if not tool_name:
             raise ValueError("未找到有效的工具名称")
@@ -133,6 +141,10 @@ class CodeToolboxAgent(AIAgent):
                 )
                 return f"代码修正{'成功' if success else '失败'}: {output}"
                 
+            elif tool_name == "explainer":
+                explanation = self.tools["explainer"].explain(action)
+                return f"解释如下：\n{explanation}"
+                
         except Exception as e:
             return f"处理失败: {str(e)}"
             
@@ -140,7 +152,7 @@ class CodeToolboxAgent(AIAgent):
         print("代码工具箱助手启动！")
         print("可用命令：")
         print("- 输入需求描述来使用工具")
-        print("- 输入'switch to [converter/modifier]'来直接使用特定工具")
+        print("- 输入'switch to [converter/modifier/explainer]'来直接使用特定工具")
         print("- 输入'exit'退出")
         
         while True:
@@ -155,8 +167,10 @@ class CodeToolboxAgent(AIAgent):
                     print(f"\n切换到{tool_name}交互模式...")
                     if tool_name == 'converter':
                         self.tools[tool_name].interactive_conversion()
-                    else:
+                    elif tool_name == 'modifier':
                         self.tools[tool_name].interactive_fixing()
+                    else:
+                        self.tools[tool_name].interactive_explanation()
                     continue
                 else:
                     print("无效的工具名称")
