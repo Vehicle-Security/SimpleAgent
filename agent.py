@@ -20,12 +20,12 @@ class CodeToolboxAgent(AIAgent):
         max_history: int = 10
     ):
         """
-        初始化代码工具箱Agent
+        工具箱Agent
         :param client: UnifiedLLMClient实例
         :param model_name: 使用的模型名称
         :param cpp_path: C++源代码路径
         :param output_dir: 输出目录
-        :param max_history: 对话历史长度
+        :param max_history: 对话历史长度初始化代码
         """
         system_prompt = (
             "你是一个智能代码助手，负责理解用户需求并选择合适的工具。可用的工具有：\n"
@@ -137,7 +137,6 @@ class CodeToolboxAgent(AIAgent):
             return f"处理失败: {str(e)}"
             
     def interactive_session(self):
-        """交互式会话"""
         print("代码工具箱助手启动！")
         print("可用命令：")
         print("- 输入需求描述来使用工具")
