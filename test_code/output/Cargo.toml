@@ -1,6 +1,1 @@
-[package]
-name = "cpp_to_rust"
-version = "0.1.0"
-edition = "2021"
-
 [dependencies]

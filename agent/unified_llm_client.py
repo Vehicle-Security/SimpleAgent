@@ -100,11 +100,11 @@ class UnifiedLLMClient:
         }
 
         # 在发送请求前添加调试信息
-        print("\n=== 调试信息 ===")
-        print("模型配置:", config)
-        print("请求端点:", endpoint)
-        print("请求头:", config["headers"])
-        print("请求数据:", json.dumps(data, indent=2, ensure_ascii=False))
+        # print("\n=== 调试信息 ===")
+        # print("模型配置:", config)
+        # print("请求端点:", endpoint)
+        # print("请求头:", config["headers"])
+        # print("请求数据:", json.dumps(data, indent=2, ensure_ascii=False))
         # 发送请求
         try:
             response = requests.post(
