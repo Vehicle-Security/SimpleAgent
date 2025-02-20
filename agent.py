@@ -102,7 +102,8 @@ class CodeToolboxAgent(AIAgent):
             "explainer": CodeExplainerAgent(
                 client=client,
                 model_name=model_name,
-                rust_path=self.rust_path
+                rust_path=self.rust_path,
+                cpp_path=self.cpp_path
             )
         }
     
@@ -139,7 +140,7 @@ class CodeToolboxAgent(AIAgent):
             max_tokens=500,
             temperature=0.3
         )
-        
+        print(response)
         try:
             # 解析工具选择
             choice = self._parse_tool_choice(response)

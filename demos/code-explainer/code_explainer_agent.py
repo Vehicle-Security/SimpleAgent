@@ -10,6 +10,7 @@ class CodeExplainerAgent(AIAgent):
         client: UnifiedLLMClient,
         model_name: str,
         rust_path: str,
+        cpp_path: str,
         max_history: int = 10,
         system_prompt: Optional[str] = None
     ):
@@ -18,14 +19,16 @@ class CodeExplainerAgent(AIAgent):
         :param client: UnifiedLLMClient实例
         :param model_name: 使用的模型名称
         :param rust_path: Rust源代码文件路径
+        :param cpp_path: C++源代码文件路径
         :param max_history: 对话历史长度
         """
         default_system_prompt = (
-            "你是一个专业的Rust代码解释专家，负责解答用户关于代码的问题。请遵守以下规则：\n"
+            "你是一个专业的代码解释专家，负责解答用户关于代码的问题。请遵守以下规则：\n"
             "1. 清晰解释代码的功能和实现原理\n"
-            "2. 重点说明Rust特有的语言特性\n"
+            "2. 重点说明语言特有的特性\n"
             "3. 如果涉及性能相关问题，解释优化原理\n"
-            "4. 使用例子来辅助解释复杂概念"
+            "4. 使用例子来辅助解释复杂概念\n"
+            "5. 对比 Rust 和 C++ 实现的异同"
         )
         
         super().__init__(
@@ -36,15 +39,17 @@ class CodeExplainerAgent(AIAgent):
         )
         
         self.rust_path = rust_path
-        self.current_code = self._load_rust_code()
+        self.cpp_path = cpp_path
+        self.rust_code = self._load_code(rust_path)
+        self.cpp_code = self._load_code(cpp_path)
 
-    def _load_rust_code(self) -> str:
-        """读取Rust源代码文件"""
+    def _load_code(self, file_path: str) -> str:
+        """读取源代码文件"""
         try:
-            with open(self.rust_path, 'r', encoding='utf-8') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 return f.read()
         except FileNotFoundError:
-            raise RuntimeError(f"Rust文件不存在：{self.rust_path}")
+            raise RuntimeError(f"文件不存在：{file_path}")
         except Exception as e:
             raise RuntimeError(f"读取文件失败：{str(e)}")
 
@@ -55,8 +60,9 @@ class CodeExplainerAgent(AIAgent):
         :return: 解释内容
         """
         prompt = (
-            f"请解释以下Rust代码相关的问题：\n\n"
-            f"代码：\n```rust\n{self.current_code}\n```\n\n"
+            f"请解释以下代码相关的问题：\n\n"
+            f"Rust代码：\n```rust\n{self.rust_code}\n```\n\n"
+            f"C++代码：\n```cpp\n{self.cpp_code}\n```\n\n"
             f"问题：{question}"
         )
         
