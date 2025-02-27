@@ -1,7 +1,11 @@
+use std::io;
+
 fn main() {
-    let a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    for i in 1..10 { // 修改循环下标开始位置
-        print!("{} ", a[i]);
-    }
-    println!();
+    let mut n = String::new();
+    io::stdin().read_line(&mut n).expect("Failed to read line");
+    let n: i32 = match n.trim().parse() {
+        Ok(num) => num,
+        Err(_) => panic!("Invalid input"),
+    };
+    println!("n = {}", n);
 }

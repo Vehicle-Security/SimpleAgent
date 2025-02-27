@@ -5,8 +5,8 @@ from ai_agent import AIAgent
 import sys
 sys.path.append("../rust-compile-run")
 sys.path.append("../cpp-compile-run")
-from rust import Rust
-from cpp import Cpp
+from Rust import Rust
+from Cpp import Cpp
 import re
 from typing import Optional, Tuple
 
