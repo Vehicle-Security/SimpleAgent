@@ -55,22 +55,22 @@ class CodeModifierAgent(AIAgent):
         self.cpp_runner = Cpp(cpp_path)
         self.max_retry = 5  # 最大重试次数
 
-    def _compile_and_run_rust(self) -> Tuple[int, str]:
+    def _compile_and_run_rust(self, input_file=None) -> Tuple[int, str]:
         """编译并运行Rust代码"""
         compile_flag, compile_output = self.rust_runner.rust_compile()
         if compile_flag != 0:
             return 1, f"编译错误：\n{compile_output}"
         
-        run_flag, run_output = self.rust_runner.rust_run()
+        run_flag, run_output = self.rust_runner.rust_run(input_file)
         return run_flag, run_output
 
-    def _compile_and_run_cpp(self) -> Tuple[int, str]:
+    def _compile_and_run_cpp(self, input_file=None) -> Tuple[int, str]:
         """编译并运行C++代码"""
         compile_flag, compile_output = self.cpp_runner.cpp_compile()
         if compile_flag != 0:
             return 1, f"C++编译错误：\n{compile_output}"
         
-        run_flag, run_output = self.cpp_runner.cpp_run()
+        run_flag, run_output = self.cpp_runner.cpp_run(input_file)
         return run_flag, run_output
 
     def _get_code_diff(self, rust_out: str, cpp_out: str) -> str:
@@ -99,22 +99,23 @@ class CodeModifierAgent(AIAgent):
         except Exception as e:
             raise RuntimeError(f"更新代码失败：{str(e)}")
 
-    def diagnose_and_fix(self, instruction: Optional[str] = None) -> Tuple[bool, str]:
+    def diagnose_and_fix(self, instruction: Optional[str] = None, input_file: Optional[str] = None) -> Tuple[bool, str]:
         """
         执行诊断和修复流程
         :param instruction: 可选的人工修正指令
+        :param input_file: 可选的输入文件路径
         :return: (是否成功, 最终输出)
         """
         for attempt in range(self.max_retry):
             print(f"\n=== 第{attempt+1}次尝试 ===")
             
             # 步骤1：编译运行Rust
-            rust_status, rust_output = self._compile_and_run_rust()
+            rust_status, rust_output = self._compile_and_run_rust(input_file)
             
             # 步骤2：如果Rust运行成功，验证与C++的一致性
             if rust_status == 0:
                 print("Rust编译和运行成功")
-                cpp_status, cpp_output = self._compile_and_run_cpp()
+                cpp_status, cpp_output = self._compile_and_run_cpp(input_file)
                 if cpp_status != 0:
                     print(f"C++代码验证失败：\n{cpp_output}")
                     return False, f"C++代码验证失败：{cpp_output}"
@@ -161,10 +162,13 @@ class CodeModifierAgent(AIAgent):
         
         return False, f"经过{self.max_retry}次尝试仍未解决问题"
 
-    def interactive_fixing(self):
-        """交互式修正流程"""
+    def interactive_fixing(self, input_file: Optional[str] = None):
+        """
+        交互式修正流程
+        :param input_file: 可选的输入文件路径
+        """
         print("开始自动诊断...")
-        success, output = self.diagnose_and_fix()
+        success, output = self.diagnose_and_fix(input_file=input_file)
         
         if success:
             print("\n初始修正成功！输出结果：")
@@ -184,14 +188,14 @@ class CodeModifierAgent(AIAgent):
             choice = input("请选择操作：")
             
             if choice == '1':
-                success, output = self.diagnose_and_fix()
+                success, output = self.diagnose_and_fix(input_file=input_file)
                 if success:
                     print("\n修正成功！输出结果：")
                     print(output)
                     break
             elif choice == '2':
                 instruction = input("请输入修正指令：")
-                success, output = self.diagnose_and_fix(instruction)
+                success, output = self.diagnose_and_fix(instruction=instruction, input_file=input_file)
                 if success:
                     print("\n修正成功！输出结果：")
                     print(output)
@@ -219,12 +223,10 @@ if __name__ == "__main__":
     modifier = CodeModifierAgent(
         client=llm_client,
         model_name="ollama-llama3",
-        rust_path="./output/example.rs",
-        cpp_path="./example.cpp"
+        rust_path="../../test_code/output/example.rs",
+        cpp_path="../../test_code/example.cpp"
     )
 
-    # 自动修正流程
-    # success, output = modifier.diagnose_and_fix()
-    
-    # 交互式修正
-    modifier.interactive_fixing()
+    # 指定输入文件进行修正（示例）
+    input_file = "../../test_code/input"  # 可选的输入文件
+    modifier.interactive_fixing(input_file)

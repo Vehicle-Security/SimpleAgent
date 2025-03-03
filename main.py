@@ -26,5 +26,8 @@ if __name__ == "__main__":
         output_dir="./test_code/output"
     )
     
+    # 可选：指定输入文件
+    input_file = "./test_code/input"  # 如果代码需要输入文件，在这里指定
+    
     # 启动交互式会话
-    toolbox.interactive_session()
+    toolbox.interactive_session(input_file)

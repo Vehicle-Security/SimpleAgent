@@ -128,10 +128,11 @@ class CodeToolboxAgent(AIAgent):
             "action": action_match.group(1).strip()
         }
     
-    def process_request(self, user_input: str) -> str:
+    def process_request(self, user_input: str, input_file: Optional[str] = None) -> str:
         """
         处理用户请求
         :param user_input: 用户输入
+        :param input_file: 可选的输入文件路径
         :return: 处理结果
         """
         # 让模型选择工具
@@ -159,7 +160,8 @@ class CodeToolboxAgent(AIAgent):
                 
             elif tool_name == "modifier":
                 success, output = self.tools["modifier"].diagnose_and_fix(
-                    instruction=action
+                    instruction=action,
+                    input_file=input_file
                 )
                 return f"代码修正{'成功' if success else '失败'}: {output}"
                 
@@ -170,7 +172,11 @@ class CodeToolboxAgent(AIAgent):
         except Exception as e:
             return f"处理失败: {str(e)}"
             
-    def interactive_session(self):
+    def interactive_session(self, input_file: Optional[str] = None):
+        """
+        交互式会话
+        :param input_file: 可选的输入文件路径，用于代码运行
+        """
         print("代码工具箱助手启动！")
         print("可用命令：")
         print("- 输入需求描述来使用工具")
@@ -190,7 +196,7 @@ class CodeToolboxAgent(AIAgent):
                     if tool_name == 'converter':
                         self.tools[tool_name].interactive_conversion()
                     elif tool_name == 'modifier':
-                        self.tools[tool_name].interactive_fixing()
+                        self.tools[tool_name].interactive_fixing(input_file)
                     else:
                         self.tools[tool_name].interactive_explanation()
                     continue
@@ -198,7 +204,7 @@ class CodeToolboxAgent(AIAgent):
                     print("无效的工具名称")
                     continue
             
-            result = self.process_request(user_input)
+            result = self.process_request(user_input, input_file)
             print(result)
 
 # ===== 使用示例 =====
@@ -219,5 +225,8 @@ if __name__ == "__main__":
         output_dir="./test_code/output"
     )
     
+    # 可选：指定输入文件
+    input_file = "./test_code/input"  # 如果代码需要输入文件，在这里指定
+    
     # 启动交互式会话
-    toolbox.interactive_session()
+    toolbox.interactive_session(input_file)

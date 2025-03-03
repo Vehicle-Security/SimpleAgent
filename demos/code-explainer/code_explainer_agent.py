@@ -40,8 +40,22 @@ class CodeExplainerAgent(AIAgent):
         
         self.rust_path = rust_path
         self.cpp_path = cpp_path
-        self.rust_code = self._load_code(rust_path)
-        self.cpp_code = self._load_code(cpp_path)
+        # 初始化时不立即加载代码
+        self.rust_code = None
+        self.cpp_code = None
+        self._try_load_code()
+
+    def _try_load_code(self):
+        """尝试加载代码文件，如果文件不存在则设置为 None"""
+        try:
+            self.cpp_code = self._load_code(self.cpp_path)
+        except RuntimeError:
+            self.cpp_code = None
+            
+        try:
+            self.rust_code = self._load_code(self.rust_path)
+        except RuntimeError:
+            self.rust_code = None
 
     def _load_code(self, file_path: str) -> str:
         """读取源代码文件"""
@@ -59,12 +73,21 @@ class CodeExplainerAgent(AIAgent):
         :param question: 用户问题
         :return: 解释内容
         """
-        prompt = (
-            f"请解释以下代码相关的问题：\n\n"
-            f"Rust代码：\n```rust\n{self.rust_code}\n```\n\n"
-            f"C++代码：\n```cpp\n{self.cpp_code}\n```\n\n"
-            f"问题：{question}"
-        )
+        # 在解释前重新尝试加载代码
+        self._try_load_code()
+        
+        if not self.cpp_code and not self.rust_code:
+            return "错误：没有可用的代码文件进行解释。请先使用converter生成Rust代码。"
+            
+        prompt = "请解释以下代码相关的问题：\n\n"
+        
+        if self.cpp_code:
+            prompt += f"C++代码：\n```cpp\n{self.cpp_code}\n```\n\n"
+            
+        if self.rust_code:
+            prompt += f"Rust代码：\n```rust\n{self.rust_code}\n```\n\n"
+            
+        prompt += f"问题：{question}"
         
         return self.chat(
             prompt,
