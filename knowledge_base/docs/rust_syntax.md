@@ -1,8 +1,6 @@
-以下是完整详细的 `rust_syntax.md` 技术文档（约8500字）：
 
 ---
 
-```markdown
 # Rust 完全语法指南（Edition 2024）
 
 ## 目录
