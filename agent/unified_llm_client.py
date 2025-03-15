@@ -61,6 +61,8 @@ class UnifiedLLMClient:
             }
         self.active_models[model_name] = {
             "config": config,
+         
+         
             "model": model  # 实际调用的模型名称
         }
 

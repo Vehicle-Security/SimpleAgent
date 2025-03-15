@@ -17,17 +17,22 @@ if __name__ == "__main__":
         config=llm_client.configs["ollama"],
         model="llama3.1"
     )
+    llm_client.add_model(
+        model_name="ollama-deepssek-r1:8b", 
+        config=llm_client.configs["ollama"],
+        model="deepseek-r1:8b"
+    )
     
     # 创建工具箱Agent
     toolbox = CodeToolboxAgent(
         client=llm_client,
-        model_name="ollama-llama3",
+        model_name="ollama-deepssek-r1:8b",
         cpp_path="./test_code/example.cpp",
         output_dir="./test_code/output"
     )
     
     # 可选：指定输入文件
-    input_file = "./test_code/input"  # 如果代码需要输入文件，在这里指定
+    input_file = "./test_code/example.in"  # 如果代码需要输入文件，在这里指定
     
     # 启动交互式会话
     toolbox.interactive_session(input_file)
