@@ -104,7 +104,7 @@ class UnifiedLLMClient:
             **kwargs
         }
         
-        print("prompt : ", data) 
+        # print("prompt : ", data) 
         try:
             response = requests.post(
                 endpoint,
@@ -116,7 +116,7 @@ class UnifiedLLMClient:
             
             elapsed_time = time.time() - start_time
             print(f"\n生成完成，耗时：{elapsed_time:.2f}秒")
-            print(result)
+            # print(result)
             return result
         except requests.exceptions.RequestException as e:
             elapsed_time = time.time() - start_time

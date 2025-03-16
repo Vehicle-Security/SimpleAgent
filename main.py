@@ -6,7 +6,11 @@ sys.path.append("./demos/rust-compile-run")
 sys.path.append("./demos/code-explainer")
 from unified_llm_client import UnifiedLLMClient
 from agent import CodeToolboxAgent
+from dotenv import load_dotenv
+import os
 
+# 加载 .env 文件
+load_dotenv()
 
 if __name__ == "__main__":
     # 初始化LLM客户端
@@ -21,10 +25,16 @@ if __name__ == "__main__":
         config=llm_client.configs["ollama"],
         model="deepseek-r1:8b"
     )
+    
+    # 从环境变量获取 API key
+    DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+    if not DEEPSEEK_API_KEY:
+        raise ValueError("DEEPSEEK_API_KEY not found in environment variables")
+        
     llm_client.add_model(
         model_name="deepseek-deepseek-chat",
         config=llm_client.configs["deepseek"],
-        api_key="DEEPSEEK_API_KEY",
+        api_key=DEEPSEEK_API_KEY,
         model="deepseek-chat"
     )
     
