@@ -1,6 +1,7 @@
 import requests
 import json
 from typing import Dict, Optional, List
+import time
 
 class UnifiedLLMClient:
     def __init__(self):
@@ -83,6 +84,9 @@ class UnifiedLLMClient:
         :param kwargs: 模型特定的额外参数
         :return: 生成的文本
         """
+        start_time = time.time()
+        print("\n开始生成回复...")
+
         if model_name not in self.active_models:
             raise ValueError(f"模型 {model_name} 未配置，请先调用 add_model()")
 
@@ -91,23 +95,15 @@ class UnifiedLLMClient:
         endpoint = f"{config['base_url']}{config['endpoint']}"
 
         # 构造请求数据
-        # 在 UnifiedLLMClient.generate() 中，合并默认参数：
         data = {
             config['prompt_field']: prompt,
             "max_tokens": max_tokens,
             "temperature": temperature,
             "model": model_config.get("model"),
-            **config.get("params", {}),  # 合并模型特定的默认参数
+            **config.get("params", {}),
             **kwargs
         }
 
-        # 在发送请求前添加调试信息
-        # print("\n=== 调试信息 ===")
-        # print("模型配置:", config)
-        # print("请求端点:", endpoint)
-        # print("请求头:", config["headers"])
-        # print("请求数据:", json.dumps(data, indent=2, ensure_ascii=False))
-        # 发送请求
         try:
             response = requests.post(
                 endpoint,
@@ -115,8 +111,14 @@ class UnifiedLLMClient:
                 json=data
             )
             response.raise_for_status()
-            return self._extract_response(response.json(), config['response_field'])
+            result = self._extract_response(response.json(), config['response_field'])
+            
+            elapsed_time = time.time() - start_time
+            print(f"\n生成完成，耗时：{elapsed_time:.2f}秒")
+            return result
         except requests.exceptions.RequestException as e:
+            elapsed_time = time.time() - start_time
+            print(f"\n生成失败，耗时：{elapsed_time:.2f}秒")
             raise RuntimeError(f"请求失败: {str(e)}")
 
     def _extract_response(self, response: Dict, field_path: str) -> str:

@@ -4,7 +4,6 @@ sys.path.append("./demos/cpp2rust")
 sys.path.append("./demos/cpp-compile-run")
 sys.path.append("./demos/rust-compile-run")
 sys.path.append("./demos/code-explainer")
-from code_explainer_agent import CodeExplainerAgent
 from unified_llm_client import UnifiedLLMClient
 from agent import CodeToolboxAgent
 
@@ -13,7 +12,7 @@ if __name__ == "__main__":
     # 初始化LLM客户端
     llm_client = UnifiedLLMClient()
     llm_client.add_model(
-        model_name="ollama-llama3",
+        model_name="ollama-llama3.1", 
         config=llm_client.configs["ollama"],
         model="llama3.1"
     )
@@ -23,16 +22,18 @@ if __name__ == "__main__":
         model="deepseek-r1:8b"
     )
     
-    # 创建工具箱Agent
+    # 创建工具箱Agent（使用改进的RAG功能）
     toolbox = CodeToolboxAgent(
         client=llm_client,
-        model_name="ollama-deepssek-r1:8b",
+        model_name="ollama-llama3.1",
         cpp_path="./test_code/example.cpp",
-        output_dir="./test_code/output"
+        output_dir="./test_code/output",
+        knowledge_base_path="./knowledge_base",
+        embedding_model="all-MiniLM-L6-v2"  # 指定embedding模型
     )
     
     # 可选：指定输入文件
-    input_file = "./test_code/example.in"  # 如果代码需要输入文件，在这里指定
+    input_file = "./test_code/input"
     
     # 启动交互式会话
     toolbox.interactive_session(input_file)

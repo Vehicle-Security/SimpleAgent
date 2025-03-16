@@ -26,20 +26,14 @@ class CodeConverterAgent(AIAgent):
         """
         # 设置默认系统提示
         default_system_prompt = (
-            "你是一个专业的代码转换专家，负责将C++代码转换为Rust代码，并生成对应的Cargo.toml文件。\n"
-            "请遵守以下规则：\n"
-            "1. 保持代码逻辑和结构一致\n"
-            "2. 使用Rust的最佳实践\n"
-            "3. 生成的toml需包含必要依赖\n"
-            "4. 按以下格式响应：\n"
-            "   [RUST_CODE]\n"
-            "   ```rust\n"
-            "   生成的Rust代码\n"
-            "   ```\n"
-            "   [TOML]\n"
-            "   ```toml\n"
-            "   生成的TOML内容\n"
-            "   ```"
+            "你是一个专业的代码转换专家，负责将C++代码转换为Rust代码。"
+            "你需要保持代码逻辑和结构一致，使用Rust的最佳实践，并生成对应的Cargo.toml文件。\n\n"
+            "请严格按照以下JSON格式响应：\n"
+            "{\n"
+            "    \"rust_code\": \"生成的Rust代码\",\n"
+            "    \"cargo_toml\": \"生成的Cargo.toml内容\",\n"
+            "    \"explanation\": \"转换说明\"\n"
+            "}"
         )
         
         super().__init__(
@@ -65,18 +59,15 @@ class CodeConverterAgent(AIAgent):
             raise RuntimeError(f"读取文件失败：{str(e)}")
 
     def _parse_response(self, response: str) -> dict:
-        """
-        解析模型响应，提取Rust代码和TOML内容
-        返回格式：{"rust": str, "toml": str}
-        """
-        # 使用正则表达式匹配代码块
-        rust_match = re.search(r'\[RUST_CODE\].*?```rust(.*?)```', response, re.DOTALL)
-        toml_match = re.search(r'\[TOML\].*?```toml(.*?)```', response, re.DOTALL)
-
-        return {
-            "rust": rust_match.group(1).strip() if rust_match else "",
-            "toml": toml_match.group(1).strip() if toml_match else ""
-        }
+        """解析模型响应"""
+        try:
+            import json
+            result = json.loads(response)
+            if not all(k in result for k in ["rust_code", "cargo_toml"]):
+                raise ValueError("响应缺少必要字段")
+            return result
+        except json.JSONDecodeError:
+            raise ValueError("无效的JSON格式")
 
     def _save_generated_files(self, rust_code: str, toml_content: str):
         """保存生成的文件"""
@@ -123,11 +114,11 @@ class CodeConverterAgent(AIAgent):
         # 解析并保存结果
         parsed = self._parse_response(response)
         # print("parsed : ", parsed)
-        if not parsed["rust"]:
+        if not parsed["rust_code"]:
             raise ValueError("未检测到有效的Rust代码块")
-        if not parsed["toml"]:
+        if not parsed["cargo_toml"]:
             print("警告：未检测到TOML配置，将生成空Cargo.toml")
-        self._save_generated_files(parsed["rust"], parsed["toml"])
+        self._save_generated_files(parsed["rust_code"], parsed["cargo_toml"])
         
         # 添加生成结果到历史（保持上下文）
         self.message_history.append({

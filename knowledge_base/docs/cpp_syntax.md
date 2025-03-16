@@ -422,4 +422,3 @@ g++ -std=c++20 -Wall -Wextra -o program main.cpp
 -Wextra        # 额外警告检查
 -g             # 包含调试信息
 -O2            # 优化级别
-```

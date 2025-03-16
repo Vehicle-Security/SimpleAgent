@@ -11,62 +11,50 @@ from code_modifier_agent import CodeModifierAgent
 from code_explainer_agent import CodeExplainerAgent
 from typing import Optional, Dict, Any
 import os
+from rag_agent import RAGAgent
 
-class CodeToolboxAgent(AIAgent):
+class CodeToolboxAgent(RAGAgent):
     def __init__(
         self,
         client: UnifiedLLMClient,
         model_name: str,
         cpp_path: str,
         output_dir: str,
+        knowledge_base_path: str = "./knowledge_base",
+        embedding_model: str = "all-MiniLM-L6-v2",
         max_history: int = 10
     ):
         """
-        工具箱Agent
+        初始化带RAG功能的工具箱Agent
         :param client: UnifiedLLMClient实例
         :param model_name: 使用的模型名称
         :param cpp_path: C++源代码路径
         :param output_dir: 输出目录
+        :param knowledge_base_path: 知识库目录路径
+        :param embedding_model: 使用的embedding模型名称
         :param max_history: 对话历史长度初始化代码
         """
         
         system_prompt = (
-            "你是一个智能代码助手，负责理解用户需求并选择合适的工具。可用的工具有：\n\n"
-            "1. 代码转换器(converter):\n"
-            "   - 功能：将C++代码转换为Rust代码\n"
-            "   - 适用场景：\n"
-            "     * 需要将现有C++代码迁移到Rust\n"
-            "     * 需要生成初始的Rust代码框架\n"
-            "     * 需要自动生成对应的Cargo.toml配置\n"
-            "   - 特点：保持原始代码逻辑，使用Rust最佳实践\n\n"
-            "2. 代码修正器(modifier):\n"
-            "   - 功能：诊断和修复Rust代码问题\n"
-            "   - 适用场景：\n"
-            "     * 解决编译错误\n"
-            "     * 修复运行时错误\n"
-            "     * 确保与原C++代码行为一致\n"
-            "     * 优化代码性能\n"
-            "   - 特点：自动诊断问题，支持交互式修复\n\n"
-            "3. 代码解释器(explainer):\n"
-            "   - 功能：解释Rust代码相关问题\n"
-            "   - 适用场景：\n"
-            "     * 理解代码功能和实现原理\n"
-            "     * 学习Rust特有的语言特性\n"
-            "     * 分析性能相关问题\n"
-            "     * 需要代码示例辅助理解\n"
-            "   - 特点：提供清晰的解释和具体示例\n\n"
-            "请根据用户输入判断应该使用哪个工具，并按以下格式响应：\n"
-            "[TOOL_CHOICE]\n"
-            "工具名称: converter、modifier或explainer\n"
-            "原因: 选择该工具的理由\n"
-            "[ACTION]\n"
-            "建议的具体操作"
+            "你是一个智能代码助手，负责理解用户需求并选择合适的工具。\n\n"
+            "可用工具说明：\n"
+            "1. converter: C++代码转换为Rust代码\n"
+            "2. modifier: 诊断和修复Rust代码问题\n"
+            "3. explainer: 解释代码相关问题\n\n"
+            "请严格按照以下JSON格式响应：\n"
+            "{\n"
+            "    \"tool\": \"converter\",  // 必须是 converter、modifier 或 explainer\n"
+            "    \"reason\": \"选择该工具的理由\",\n"
+            "    \"action\": \"建议的具体操作\"\n"
+            "}"
         )
         
         super().__init__(
             client=client,
-            system_prompt=system_prompt,
             model_name=model_name,
+            knowledge_base_path=knowledge_base_path,
+            embedding_model=embedding_model,
+            system_prompt=system_prompt,
             max_history=max_history
         )
         
@@ -109,24 +97,14 @@ class CodeToolboxAgent(AIAgent):
     
     def _parse_tool_choice(self, response: str) -> Dict[str, str]:
         """解析工具选择响应"""
-        import re
-        
-        tool_match = re.search(r'\[TOOL_CHOICE\](.*?)\[ACTION\]', response, re.DOTALL)
-        action_match = re.search(r'\[ACTION\](.*)', response, re.DOTALL)
-        
-        if not tool_match or not action_match:
-            raise ValueError("无效的响应格式")
-            
-        tool_section = tool_match.group(1)
-        tool_name = re.search(r'工具名称:\s*(converter|modifier|explainer)', tool_section)
-        
-        if not tool_name:
-            raise ValueError("未找到有效的工具名称")
-            
-        return {
-            "tool": tool_name.group(1),
-            "action": action_match.group(1).strip()
-        }
+        try:
+            import json
+            result = json.loads(response)
+            if not all(k in result for k in ["tool", "reason", "action"]):
+                raise ValueError("响应缺少必要字段")
+            return result
+        except json.JSONDecodeError:
+            raise ValueError("无效的JSON格式")
     
     def process_request(self, user_input: str, input_file: Optional[str] = None) -> str:
         """

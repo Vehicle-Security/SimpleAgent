@@ -272,4 +272,3 @@ impl Drop for File {
 > 3. 异常 → Result/Option  
 > 4. 模板 → 泛型 + Trait约束  
 > 完整示例库：https://github.com/rust-lang/rust-by-example
-```

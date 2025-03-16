@@ -29,17 +29,15 @@ class CodeModifierAgent(AIAgent):
         :param max_history: 保留的对话历史长度
         """
         default_system_prompt = (
-            "你是一个专业的代码修正专家，负责诊断和修复Rust代码问题。请遵守以下规则：\n"
-            "1. 根据编译/运行时错误分析问题\n"
-            "2. 保持与原始C++代码的逻辑一致性\n"
-            "3. 使用Rust的安全最佳实践\n"
-            "4. 响应格式(特别注意，必须严格遵循响应格式进行输出，[ANALYSIS]和[MODIFIED_CODE]部分不能进行包括翻译在内的任何改动)：\n"
-            "   [ANALYSIS]\n"
-            "   问题分析...\n"
-            "   [MODIFIED_CODE]\n"
-            "   ```rust\n"
-            "   修正后的代码\n"
-            "   ```"
+            "你是一个专业的代码修正专家，负责诊断和修复Rust代码问题。"
+            "你需要根据编译/运行时错误分析问题，保持与原始C++代码的逻辑一致性，"
+            "并使用Rust的安全最佳实践。\n\n"
+            "请严格按照以下JSON格式响应：\n"
+            "{\n"
+            "    \"analysis\": \"问题分析\",\n"
+            "    \"modified_code\": \"修正后的代码\",\n"
+            "    \"changes\": \"修改说明\"\n"
+            "}"
         )
         
         super().__init__(
@@ -84,10 +82,14 @@ class CodeModifierAgent(AIAgent):
 
     def _parse_response(self, response: str) -> str:
         """解析模型响应中的代码"""
-        code_match = re.search(r'\[MODIFIED_CODE\].*?```rust(.*?)```', response, re.DOTALL)
-        if not code_match:
-            raise ValueError("未检测到有效的代码块")
-        return code_match.group(1).strip()
+        try:
+            import json
+            result = json.loads(response)
+            if "modified_code" not in result:
+                raise ValueError("响应缺少必要字段")
+            return result["modified_code"]
+        except json.JSONDecodeError:
+            raise ValueError("无效的JSON格式")
 
     def _update_rust_code(self, new_code: str):
         """更新Rust代码文件"""
