@@ -21,11 +21,17 @@ if __name__ == "__main__":
         config=llm_client.configs["ollama"],
         model="deepseek-r1:8b"
     )
+    llm_client.add_model(
+        model_name="deepseek-deepseek-chat",
+        config=llm_client.configs["deepseek"],
+        api_key="DEEPSEEK_API_KEY",
+        model="deepseek-chat"
+    )
     
     # 创建工具箱Agent（使用改进的RAG功能）
     toolbox = CodeToolboxAgent(
         client=llm_client,
-        model_name="ollama-llama3.1",
+        model_name="deepseek-deepseek-chat",
         cpp_path="./test_code/example.cpp",
         output_dir="./test_code/output",
         knowledge_base_path="./knowledge_base",
@@ -33,7 +39,7 @@ if __name__ == "__main__":
     )
     
     # 可选：指定输入文件
-    input_file = "./test_code/input"
+    input_file = "./test_code/example.in"
     
     # 启动交互式会话
     toolbox.interactive_session(input_file)

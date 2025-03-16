@@ -13,7 +13,7 @@ from typing import Optional, Dict, Any
 import os
 from rag_agent import RAGAgent
 
-class CodeToolboxAgent(RAGAgent):
+class CodeToolboxAgent(AIAgent):
     def __init__(
         self,
         client: UnifiedLLMClient,
@@ -39,8 +39,22 @@ class CodeToolboxAgent(RAGAgent):
             "你是一个智能代码助手，负责理解用户需求并选择合适的工具。\n\n"
             "可用工具说明：\n"
             "1. converter: C++代码转换为Rust代码\n"
+            "   使用场景：\n"
+            "   - 需要将C++源代码迁移到Rust\n"
+            "   - 学习C++和Rust的语法对应关系\n"
+            "   - 需要保持代码逻辑的同时使用Rust的安全特性\n\n"
             "2. modifier: 诊断和修复Rust代码问题\n"
-            "3. explainer: 解释代码相关问题\n\n"
+            "   使用场景：\n"
+            "   - 修复Rust编译错误\n"
+            "   - 优化代码性能和内存使用\n"
+            "   - 确保与原C++代码的输出一致性\n"
+            "   - 改进代码以符合Rust最佳实践\n\n"
+            "3. explainer: 解释代码相关问题\n"
+            "   使用场景：\n"
+            "   - 理解代码的功能和实现原理\n"
+            "   - 分析C++和Rust版本的差异\n"
+            "   - 学习特定语言特性的使用方法\n"
+            "   - 获取代码优化建议\n\n"
             "请严格按照以下JSON格式响应：\n"
             "{\n"
             "    \"tool\": \"converter\",  // 必须是 converter、modifier 或 explainer\n"
@@ -49,12 +63,11 @@ class CodeToolboxAgent(RAGAgent):
             "}"
         )
         
+        # 使用 AIAgent 初始化基本功能
         super().__init__(
             client=client,
-            model_name=model_name,
-            knowledge_base_path=knowledge_base_path,
-            embedding_model=embedding_model,
             system_prompt=system_prompt,
+            model_name=model_name,
             max_history=max_history
         )
         
@@ -65,27 +78,23 @@ class CodeToolboxAgent(RAGAgent):
             os.path.splitext(os.path.basename(cpp_path))[0] + ".rs"
         )
         
-        # 初始化工具
-        self.tools = self._initialize_tools(client, model_name)
-        
-    def _initialize_tools(
-        self, 
-        client: UnifiedLLMClient, 
-        model_name: str
-    ) -> Dict[str, Any]:
-        """初始化工具集"""
-        return {
+        # 初始化工具，但使用 RAG 功能
+        self.tools = {
             "converter": CodeConverterAgent(
                 client=client,
                 model_name=model_name,
                 input_path=self.cpp_path,
-                output_dir=self.output_dir
+                output_dir=self.output_dir,
+                knowledge_base_path=knowledge_base_path,  # 添加知识库支持
+                embedding_model=embedding_model
             ),
             "modifier": CodeModifierAgent(
                 client=client,
                 model_name=model_name,
                 rust_path=self.rust_path,
-                cpp_path=self.cpp_path
+                cpp_path=self.cpp_path,
+                knowledge_base_path=knowledge_base_path,  # 添加知识库支持
+                embedding_model=embedding_model
             ),
             "explainer": CodeExplainerAgent(
                 client=client,
@@ -94,7 +103,7 @@ class CodeToolboxAgent(RAGAgent):
                 cpp_path=self.cpp_path
             )
         }
-    
+        
     def _parse_tool_choice(self, response: str) -> Dict[str, str]:
         """解析工具选择响应"""
         try:
@@ -183,7 +192,7 @@ class CodeToolboxAgent(RAGAgent):
                     continue
             
             result = self.process_request(user_input, input_file)
-            print(result)
+            # print(result)
 
 # ===== 使用示例 =====
 if __name__ == "__main__":
@@ -204,7 +213,7 @@ if __name__ == "__main__":
     )
     
     # 可选：指定输入文件
-    input_file = "./test_code/input"  # 如果代码需要输入文件，在这里指定
+    input_file = "./test_code/example.in"  # 如果代码需要输入文件，在这里指定
     
     # 启动交互式会话
     toolbox.interactive_session(input_file)

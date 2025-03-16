@@ -1,7 +1,7 @@
 import sys
 sys.path.append("../../agent")
 from unified_llm_client import UnifiedLLMClient
-from ai_agent import AIAgent
+from rag_agent import RAGAgent
 import sys
 sys.path.append("../rust-compile-run")
 sys.path.append("../cpp-compile-run")
@@ -10,13 +10,15 @@ from Cpp import Cpp
 import re
 from typing import Optional, Tuple
 
-class CodeModifierAgent(AIAgent):
+class CodeModifierAgent(RAGAgent):
     def __init__(
         self,
         client: UnifiedLLMClient,
         model_name: str,
         rust_path: str,
         cpp_path: str,
+        knowledge_base_path: str,
+        embedding_model: str = "all-MiniLM-L6-v2",
         max_history: int = 10,
         system_prompt: Optional[str] = None
     ):
@@ -26,6 +28,8 @@ class CodeModifierAgent(AIAgent):
         :param model_name: 使用的模型名称
         :param rust_path: Rust源代码文件路径
         :param cpp_path: 对应的C++源代码文件路径
+        :param knowledge_base_path: 知识库路径
+        :param embedding_model: 嵌入模型
         :param max_history: 保留的对话历史长度
         """
         default_system_prompt = (
@@ -37,13 +41,16 @@ class CodeModifierAgent(AIAgent):
             "    \"analysis\": \"问题分析\",\n"
             "    \"modified_code\": \"修正后的代码\",\n"
             "    \"changes\": \"修改说明\"\n"
-            "}"
+            "}\n"
+            "不要写出多余的思考步骤"
         )
         
         super().__init__(
             client=client,
-            system_prompt=system_prompt or default_system_prompt,
             model_name=model_name,
+            knowledge_base_path=knowledge_base_path,
+            embedding_model=embedding_model,
+            system_prompt=system_prompt or default_system_prompt,
             max_history=max_history
         )
         
@@ -226,7 +233,9 @@ if __name__ == "__main__":
         client=llm_client,
         model_name="ollama-llama3",
         rust_path="../../test_code/output/example.rs",
-        cpp_path="../../test_code/example.cpp"
+        cpp_path="../../test_code/example.cpp",
+        knowledge_base_path="",
+        embedding_model="all-MiniLM-L6-v2"
     )
 
     # 指定输入文件进行修正（示例）

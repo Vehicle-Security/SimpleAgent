@@ -31,7 +31,8 @@ class CodeExplainerAgent(AIAgent):
             "    \"explanation\": \"代码解释\",\n"
             "    \"examples\": \"相关示例\",\n"
             "    \"key_points\": \"重要知识点\"\n"
-            "}"
+            "}\n"
+            "不要写出多余的思考步骤"
         )
         
         super().__init__(

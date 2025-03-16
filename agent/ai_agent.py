@@ -68,7 +68,9 @@ class AIAgent:
             prompt = self.message_history
         else:
             # 通用模型：拼接历史对话为字符串
-            prompt = self._format_history_to_text()
+            formatted = self._format_history_to_text()
+            # 在提示的最后添加"不要写出多余的思考步骤"
+            prompt = f"{formatted}\n不要写出多余的思考步骤"
 
         # 调用模型生成回复
         response = self.client.generate(

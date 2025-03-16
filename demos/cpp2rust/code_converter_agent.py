@@ -1,18 +1,20 @@
 import sys
 sys.path.append("../../agent")
 from unified_llm_client import UnifiedLLMClient
-from ai_agent import AIAgent
+from rag_agent import RAGAgent
 import os
 import re
 from typing import Optional
 
-class CodeConverterAgent(AIAgent):
+class CodeConverterAgent(RAGAgent):
     def __init__(
         self,
         client: UnifiedLLMClient,
         model_name: str,
         input_path: str,
         output_dir: str,
+        knowledge_base_path: str,
+        embedding_model: str = "all-MiniLM-L6-v2",
         max_history: int = 10,
         system_prompt: Optional[str] = None
     ):
@@ -22,24 +24,29 @@ class CodeConverterAgent(AIAgent):
         :param model_name: 使用的模型名称
         :param input_path: C++源代码文件路径
         :param output_dir: 输出目录
+        :param knowledge_base_path: 知识库路径
+        :param embedding_model: 嵌入模型
         :param max_history: 保留的对话历史长度
         """
         # 设置默认系统提示
         default_system_prompt = (
-            "你是一个专业的代码转换专家，负责将C++代码转换为Rust代码。"
+            "你是一个精通C++和Rust编程语言的代码转换专家，负责将C++代码转换为Rust代码。"
             "你需要保持代码逻辑和结构一致，使用Rust的最佳实践，并生成对应的Cargo.toml文件。\n\n"
             "请严格按照以下JSON格式响应：\n"
             "{\n"
             "    \"rust_code\": \"生成的Rust代码\",\n"
             "    \"cargo_toml\": \"生成的Cargo.toml内容\",\n"
             "    \"explanation\": \"转换说明\"\n"
-            "}"
+            "}\n"
+            "不要写出多余的思考步骤"
         )
         
         super().__init__(
             client=client,
-            system_prompt=system_prompt or default_system_prompt,
             model_name=model_name,
+            knowledge_base_path=knowledge_base_path,
+            embedding_model=embedding_model,
+            system_prompt=system_prompt or default_system_prompt,
             max_history=max_history
         )
         # print("system prompt : \n", self.system_prompt, "\n")
@@ -163,6 +170,8 @@ if __name__ == "__main__":
         model_name="ollama-llama3",
         input_path="example.cpp",
         output_dir="./output",
+        knowledge_base_path="",
+        embedding_model="all-MiniLM-L6-v2",
     )
 
     # 执行自动转换
