@@ -6,3 +6,6 @@ __pycache__/
 
 # test code
 test_code/
+
+# logs
+logs/
