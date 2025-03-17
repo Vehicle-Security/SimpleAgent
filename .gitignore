@@ -1,0 +1,8 @@
+# Environment variables
+.env
+
+# Python
+__pycache__/
+
+# test code
+test_code/
