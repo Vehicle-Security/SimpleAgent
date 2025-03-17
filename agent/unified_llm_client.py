@@ -2,6 +2,9 @@ import requests
 import json
 from typing import Dict, Optional, List
 import time
+import logging
+import os
+from datetime import datetime
 
 class UnifiedLLMClient:
     def __init__(self):
@@ -41,6 +44,33 @@ class UnifiedLLMClient:
         }
         self.active_models = {}  # 存储已配置的模型信息
 
+        # 设置日志
+        self._setup_logging()
+
+    def _setup_logging(self):
+        """配置日志系统"""
+        # 创建 logs 目录
+        if not os.path.exists('logs'):
+            os.makedirs('logs')
+
+        # 生成日志文件名（包含时间戳）
+        log_filename = f'logs/llm_client_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+
+        # 配置日志格式
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s [%(levelname)s] %(message)s',
+            handlers=[
+                logging.FileHandler(log_filename, encoding='utf-8'),
+                logging.StreamHandler()
+            ]
+        )
+        self.logger = logging.getLogger(__name__)
+
+    def _format_json(self, data: Dict) -> str:
+        """格式化 JSON 数据"""
+        return json.dumps(data, indent=2, ensure_ascii=False)
+
     def add_model(
         self,
         model_name: str,
@@ -62,10 +92,10 @@ class UnifiedLLMClient:
             }
         self.active_models[model_name] = {
             "config": config,
-         
-         
             "model": model  # 实际调用的模型名称
         }
+        self.logger.info(f"添加模型: {model_name}")
+        self.logger.info(f"模型配置: \n{self._format_json(config)}")
 
     def generate(
         self,
@@ -85,7 +115,8 @@ class UnifiedLLMClient:
         :return: 生成的文本
         """
         start_time = time.time()
-        print("\n开始生成回复...")
+        self.logger.info(f"\n{'='*50}\n开始生成回复...")
+        self.logger.info(f"使用模型: {model_name}")
 
         if model_name not in self.active_models:
             raise ValueError(f"模型 {model_name} 未配置，请先调用 add_model()")
@@ -104,7 +135,11 @@ class UnifiedLLMClient:
             **kwargs
         }
         
-        # print("prompt : ", data) 
+        # 记录请求信息
+        self.logger.info(f"\n请求 URL: {endpoint}")
+        self.logger.info(f"请求头: \n{self._format_json(config['headers'])}")
+        self.logger.info(f"请求数据: \n{self._format_json(data)}")
+
         try:
             response = requests.post(
                 endpoint,
@@ -112,15 +147,24 @@ class UnifiedLLMClient:
                 json=data
             )
             response.raise_for_status()
-            result = self._extract_response(response.json(), config['response_field'])
+            
+            # 记录完整响应
+            response_json = response.json()
+            self.logger.info(f"响应数据: \n{self._format_json(response_json)}")
+            
+            result = self._extract_response(response_json, config['response_field'])
             
             elapsed_time = time.time() - start_time
-            print(f"\n生成完成，耗时：{elapsed_time:.2f}秒")
-            # print(result)
+            self.logger.info(f"生成完成，耗时：{elapsed_time:.2f}秒")
+            self.logger.info(f"生成结果: \n{result}\n{'='*50}\n")
+            
             return result
         except requests.exceptions.RequestException as e:
             elapsed_time = time.time() - start_time
-            print(f"\n生成失败，耗时：{elapsed_time:.2f}秒")
+            self.logger.error(f"请求失败，耗时：{elapsed_time:.2f}秒")
+            self.logger.error(f"错误信息: {str(e)}")
+            if hasattr(e.response, 'text'):
+                self.logger.error(f"错误响应: \n{self._format_json(e.response.json())}")
             raise RuntimeError(f"请求失败: {str(e)}")
 
     def _extract_response(self, response: Dict, field_path: str) -> str:
