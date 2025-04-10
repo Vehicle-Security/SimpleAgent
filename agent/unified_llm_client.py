@@ -48,28 +48,49 @@ class UnifiedLLMClient:
         self._setup_logging()
 
     def _setup_logging(self):
-        """配置日志系统"""
-        # 创建 logs 目录
+        """配置日志系统，分离文件日志和控制台输出"""
         if not os.path.exists('logs'):
             os.makedirs('logs')
 
-        # 生成日志文件名（包含时间戳）
         log_filename = f'logs/llm_client_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
-
-        # 配置日志格式
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s [%(levelname)s] %(message)s',
-            handlers=[
-                logging.FileHandler(log_filename, encoding='utf-8'),
-                logging.StreamHandler()
-            ]
-        )
+        
+        # 创建文件处理器（详细日志）
+        file_handler = logging.FileHandler(log_filename, encoding='utf-8')
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        
+        # 创建控制台处理器（简洁信息）
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(logging.Formatter('%(message)s'))
+        
+        # 配置根日志器
         self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+        
+        # 创建专门的文件日志器用于详细信息
+        self.file_logger = logging.getLogger(f"{__name__}.file")
+        self.file_logger.setLevel(logging.INFO)
+        self.file_logger.addHandler(file_handler)
 
     def _format_json(self, data: Dict) -> str:
-        """格式化 JSON 数据"""
-        return json.dumps(data, indent=2, ensure_ascii=False)
+        """格式化 JSON 数据，保持换行符的原始形式"""
+        class NonEscapingJSONEncoder(json.JSONEncoder):
+            def encode(self, obj):
+                if isinstance(obj, str):
+                    # 直接返回带引号的字符串，保持换行符
+                    return f'"{obj}"'
+                return super().encode(obj)
+
+        # 使用自定义的 JSONEncoder 进行格式化
+        return json.dumps(
+            data,
+            indent=2,
+            ensure_ascii=False,
+            cls=NonEscapingJSONEncoder
+        )
 
     def add_model(
         self,
@@ -105,18 +126,15 @@ class UnifiedLLMClient:
         temperature: float = 0.7,
         **kwargs
     ) -> str:
-        """
-        统一生成接口
-        :param model_name: 已配置的模型名称
-        :param prompt: 输入的提示文本
-        :param max_tokens: 生成的最大 token 数量
-        :param temperature: 温度参数
-        :param kwargs: 模型特定的额外参数
-        :return: 生成的文本
-        """
+        """统一生成接口"""
         start_time = time.time()
-        self.logger.info(f"\n{'='*50}\n开始生成回复...")
-        self.logger.info(f"使用模型: {model_name}")
+        
+        # 详细日志写入文件
+        self.file_logger.info(f"\n{'='*50}\n开始生成回复...")
+        self.file_logger.info(f"使用模型: {model_name}")
+        
+        # 简洁信息显示给用户
+        self.logger.info("\n正在生成回复...")
 
         if model_name not in self.active_models:
             raise ValueError(f"模型 {model_name} 未配置，请先调用 add_model()")
@@ -135,10 +153,12 @@ class UnifiedLLMClient:
             **kwargs
         }
         
-        # 记录请求信息
-        self.logger.info(f"\n请求 URL: {endpoint}")
-        self.logger.info(f"请求头: \n{self._format_json(config['headers'])}")
-        self.logger.info(f"请求数据: \n{self._format_json(data)}")
+        # 详细请求信息写入文件日志
+        self.file_logger.info(f"\n请求 URL: {endpoint}")
+        self.file_logger.info("请求头:")
+        self.file_logger.info(self._format_json(config['headers']))
+        self.file_logger.info("请求数据:")
+        self.file_logger.info(self._format_json(data))
 
         try:
             response = requests.post(
@@ -148,23 +168,37 @@ class UnifiedLLMClient:
             )
             response.raise_for_status()
             
-            # 记录完整响应
+            # 详细响应信息写入文件日志
             response_json = response.json()
-            self.logger.info(f"响应数据: \n{self._format_json(response_json)}")
+            self.file_logger.info("响应数据:")
+            self.file_logger.info(self._format_json(response_json))
             
             result = self._extract_response(response_json, config['response_field'])
             
             elapsed_time = time.time() - start_time
-            self.logger.info(f"生成完成，耗时：{elapsed_time:.2f}秒")
-            self.logger.info(f"生成结果: \n{result}\n{'='*50}\n")
+            
+            # 详细信息写入文件
+            self.file_logger.info(f"生成完成，耗时：{elapsed_time:.2f}秒")
+            self.file_logger.info("生成结果:")
+            self.file_logger.info(result)
+            self.file_logger.info('='*50)
+            
+            # 简洁信息显示给用户
+            self.logger.info(f"完成！(耗时 {elapsed_time:.1f}秒)\n")
             
             return result
         except requests.exceptions.RequestException as e:
             elapsed_time = time.time() - start_time
-            self.logger.error(f"请求失败，耗时：{elapsed_time:.2f}秒")
-            self.logger.error(f"错误信息: {str(e)}")
+            
+            # 错误详情写入文件
+            self.file_logger.error(f"请求失败，耗时：{elapsed_time:.2f}秒")
+            self.file_logger.error(f"错误信息: {str(e)}")
             if hasattr(e.response, 'text'):
-                self.logger.error(f"错误响应: \n{self._format_json(e.response.json())}")
+                self.file_logger.error("错误响应:")
+                self.file_logger.error(self._format_json(e.response.json()))
+            
+            # 简洁错误信息显示给用户
+            self.logger.error(f"生成失败：{str(e)}")
             raise RuntimeError(f"请求失败: {str(e)}")
 
     def _extract_response(self, response: Dict, field_path: str) -> str:

@@ -42,7 +42,6 @@ class CodeModifierAgent(RAGAgent):
             "    \"modified_code\": \"修正后的代码\",\n"
             "    \"changes\": \"修改说明\"\n"
             "}\n"
-            "不要写出多余的思考步骤"
         )
         
         super().__init__(
@@ -89,9 +88,23 @@ class CodeModifierAgent(RAGAgent):
 
     def _parse_response(self, response: str) -> str:
         """解析模型响应中的代码"""
+        # print("inside _parse_response")
         try:
+            # print("inside try")
             import json
-            result = json.loads(response)
+            # print("imported json")
+            # print("response:\n", response)
+            # print(type(response))
+            response = response[response.index("{"):response.rindex("}") + 1]
+            # print("response:\n", response)
+            try:
+                result = json.loads(response)
+            except json.JSONDecodeError:
+                # print("json.loads failed")
+                # 处理可能的JSON解析错误
+                print("response:\n", response)
+                raise ValueError("无效的JSON格式")
+            print("result:\n", result)
             if "modified_code" not in result:
                 raise ValueError("响应缺少必要字段")
             return result["modified_code"]
@@ -101,6 +114,7 @@ class CodeModifierAgent(RAGAgent):
     def _update_rust_code(self, new_code: str):
         """更新Rust代码文件"""
         try:
+            print("rust_path = ", self.rust_path)
             with open(self.rust_path, 'w', encoding='utf-8') as f:
                 f.write(new_code)
             # 重新初始化runner以加载新代码
@@ -159,6 +173,8 @@ class CodeModifierAgent(RAGAgent):
                 response = self.chat(prompt, max_tokens=2000, temperature=0.3)
                 print("response:\n", response)
                 new_code = self._parse_response(response)
+                print("new_code:\n", new_code)
+                # 更新Rust代码
                 self._update_rust_code(new_code)
                 
                 # 记录到对话历史
